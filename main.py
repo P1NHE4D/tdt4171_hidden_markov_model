@@ -25,7 +25,10 @@ def main():
     # create hidden markov model
     hmm = HMM(tm, sm)
 
+    print("Forward values:")
     print_probabilities(hmm.filtering(ev=ev, prior=prior))
+
+    print("Backward values:")
     print_probabilities(hmm.smoothing(ev=ev, prior=prior), start_index=1)
 
 
