@@ -19,6 +19,8 @@ class HMM:
         """
         t = ev.shape[0]
         fv = np.zeros((t + 1, prior.shape[0]))
+
+        # initialise first forward value with prior probability
         fv[0] = prior
         for i in range(1, t + 1):
             fv[i] = self.forward(fv[i - 1], ev[i-1])
@@ -30,20 +32,27 @@ class HMM:
         :param prior: prior probability for each state j (vector<j>)
         :return: backward messages for t+1 --> 1 for each state j (array<t+1, j>)
         """
-        fv = self.filtering(ev, prior)
-        b = np.ones((ev.shape[0] + 2, prior.shape[0]))
-        t = ev.shape[0]
+        # compute forward values (fv)
+        fv = self.filtering(ev, prior)[1:]
+
+        # initialize backward values (bv) with 1s
+        bv = np.ones((ev.shape[0] + 1, prior.shape[0]))
+
+        result = np.zeros((ev.shape[0], prior.shape[0]))
+
+        t = ev.shape[0] - 1
         for i in range(t, -1, -1):
-            b[i] = self.backward(b[i+1], ev[i-1], fv[i-1])
-        return b
+            # compute smoothed probability for state t
+            prob = fv[i] * bv[i + 1]
+            result[i] = prob / prob.sum()
+
+            # update backwards value based on succeeding backwards value
+            bv[i] = self.backward(bv[i + 1], ev[i])
+        return result
 
     def forward(self, fv, ev):
         p = self.sm[ev] * np.dot(self.tm, fv)
         return p / p.sum()
 
-    def backward(self, b, ev, fv):
-        a = self.sm[ev] * b
-        b = np.dot(a, self.tm)
-        c = fv * b
-        d = c / c.sum()
-        return d
+    def backward(self, b, ev):
+        return np.dot(self.sm[ev] * b, self.tm)
